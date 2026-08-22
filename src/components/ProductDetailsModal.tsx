@@ -25,6 +25,13 @@ export default function ProductDetailsModal({ product, onClose, onOrder }: Produ
 
   if (!product) return null;
 
+  const getPriceForWeight = (w: number | null) => {
+    if (!w) return product.price;
+    const found = product.weightPrices?.find(wp => wp.weight === w);
+    if (found) return found.price;
+    return product.price * w;
+  };
+
   const handleOrderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedWeight) {
@@ -84,7 +91,12 @@ export default function ProductDetailsModal({ product, onClose, onOrder }: Produ
                     <span className="text-sm font-bold text-bakery-olive">{product.rating || '5.0'}</span>
                   </div>
                 </div>
-                <div className="text-3xl md:text-4xl text-bakery-rose font-bold">₹{product.price} <span className="text-[10px] md:text-xs font-bold text-bakery-olive/40 uppercase tracking-widest block mt-1">Starting per kg</span></div>
+                <div className="text-3xl md:text-4xl text-bakery-rose font-bold">
+                  ₹{getPriceForWeight(selectedWeight).toLocaleString()} 
+                  <span className="text-[10px] md:text-xs font-bold text-bakery-olive/40 uppercase tracking-widest block mt-1">
+                    {selectedWeight ? `${selectedWeight}kg Selected Size Rate` : 'Select size for exact price'}
+                  </span>
+                </div>
                 <p className="text-bakery-ink/70 leading-relaxed font-light text-base md:text-lg">{product.description}</p>
                 
                 <div className="space-y-4 pt-4">
@@ -197,7 +209,7 @@ export default function ProductDetailsModal({ product, onClose, onOrder }: Produ
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="serif text-3xl text-bakery-olive italic">Order Total</span>
-                      <span className="text-3xl font-bold text-bakery-rose">₹{(product.price * (selectedWeight || 0)).toLocaleString()}</span>
+                      <span className="text-3xl font-bold text-bakery-rose">₹{getPriceForWeight(selectedWeight).toLocaleString()}</span>
                     </div>
                   </div>
 
