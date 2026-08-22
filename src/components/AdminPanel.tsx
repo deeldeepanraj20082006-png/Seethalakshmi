@@ -55,6 +55,7 @@ export default function AdminPanel({
   const [editWeights, setEditWeights] = useState<number[]>([]);
   const [editWeightOptions, setEditWeightOptions] = useState<number[]>([0.5, 1.0, 1.5, 2.0, 2.5, 3.0]);
   const [editNewWeightInput, setEditNewWeightInput] = useState('');
+  const [editSizePrices, setEditSizePrices] = useState<Record<number, string>>({});
 
   const handleStartEdit = (product: Product) => {
     setEditingProduct(product);
@@ -72,6 +73,18 @@ export default function AdminPanel({
     const allWeights = Array.from(new Set([...[0.5, 1.0, 1.5, 2.0, 2.5, 3.0], ...weights])).sort((a, b) => a - b);
     setEditWeightOptions(allWeights);
     setEditNewWeightInput('');
+
+    const pricesMap: Record<number, string> = {};
+    if (product.weightPrices && product.weightPrices.length > 0) {
+      product.weightPrices.forEach(wp => {
+        pricesMap[wp.weight] = wp.price.toString();
+      });
+    } else {
+      weights.forEach(w => {
+        pricesMap[w] = (product.price * w).toString();
+      });
+    }
+    setEditSizePrices(pricesMap);
   };
 
   const handleEditWeightToggle = (weight: number) => {
@@ -99,13 +112,20 @@ export default function AdminPanel({
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !onUpdateProduct) return;
+    const weightPrices = editWeights.map(w => ({
+      weight: w,
+      price: parseFloat(editSizePrices[w]) || (parseFloat(editFormData.price) * w) || 0
+    }));
+    const basePrice = weightPrices.find(wp => wp.weight === 1.0)?.price || weightPrices[0]?.price || parseFloat(editFormData.price) || 0;
+
     onUpdateProduct(editingProduct.id, {
       name: editFormData.name,
       description: editFormData.description,
-      price: parseFloat(editFormData.price) || 0,
+      price: basePrice,
       image: editFormData.image,
       category: editFormData.category,
-      availableWeights: editWeights
+      availableWeights: editWeights,
+      weightPrices
     });
     setEditingProduct(null);
   };
@@ -122,6 +142,7 @@ export default function AdminPanel({
   const [selectedWeights, setSelectedWeights] = useState<number[]>([]);
   const [weightOptions, setWeightOptions] = useState<number[]>([0.5, 1.0, 1.5, 2.0, 2.5, 3.0]);
   const [newWeightInput, setNewWeightInput] = useState('');
+  const [sizePrices, setSizePrices] = useState<Record<number, string>>({});
 
   const handleWeightToggle = (weight: number) => {
     if (selectedWeights.includes(weight)) {
@@ -167,12 +188,19 @@ export default function AdminPanel({
     // Simulate upload delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    const weightPrices = selectedWeights.map(w => ({
+      weight: w,
+      price: parseFloat(sizePrices[w]) || (parseFloat(formData.price) * w) || 0
+    }));
+    const basePrice = weightPrices.find(wp => wp.weight === 1.0)?.price || weightPrices[0]?.price || parseFloat(formData.price) || 0;
+
     const newProduct: Omit<Product, 'id'> = {
       name: formData.name,
       description: formData.description,
-      price: parseFloat(formData.price),
+      price: basePrice,
       rating: parseFloat(formData.rating) || 5.0,
       availableWeights: selectedWeights,
+      weightPrices,
       category: ProductCategory.CAKES,
       image: formData.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80',
       featured: true
@@ -181,6 +209,7 @@ export default function AdminPanel({
     onAddProduct(newProduct);
     setFormData({ name: '', description: '', price: '', rating: '5.0', image: '', availableWeight: '1.0' });
     setSelectedWeights([]);
+    setSizePrices({});
     setIsAdding(false);
     setLoading(false);
   };
@@ -303,6 +332,30 @@ export default function AdminPanel({
                           </div>
                         ))}
                       </div>
+                      {selectedWeights.length > 0 && (
+                        <div className="space-y-3 pt-4 mt-4 border-t border-bakery-olive/10">
+                          <label className="text-xs font-bold uppercase tracking-widest text-bakery-olive/60">Set Rate (₹) for Each Selected Size</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {selectedWeights.map(w => (
+                              <div key={w} className="flex items-center gap-2 bg-bakery-cream/50 border border-bakery-olive/15 p-3 rounded-2xl">
+                                <span className="text-xs font-bold text-bakery-olive w-12">{w}kg:</span>
+                                <div className="relative flex-grow">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-bakery-olive/40 font-bold">₹</span>
+                                  <input 
+                                    type="number"
+                                    required
+                                    min="0"
+                                    placeholder="Price"
+                                    value={sizePrices[w] || ''}
+                                    onChange={(e) => setSizePrices({...sizePrices, [w]: e.target.value})}
+                                    className="w-full bg-white border border-bakery-olive/20 pl-7 pr-3 py-1.5 rounded-xl text-xs font-bold text-bakery-olive focus:outline-none focus:border-bakery-olive"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-bakery-olive/60">Asset Cover</label>
@@ -793,6 +846,30 @@ export default function AdminPanel({
                     </div>
                   ))}
                 </div>
+                {editWeights.length > 0 && (
+                  <div className="space-y-3 pt-4 mt-4 border-t border-bakery-olive/10">
+                    <label className="text-xs font-bold uppercase tracking-widest text-bakery-olive/60">Set Rate (₹) for Each Selected Size</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {editWeights.map(w => (
+                        <div key={w} className="flex items-center gap-2 bg-bakery-cream/50 border border-bakery-olive/15 p-3 rounded-2xl">
+                          <span className="text-xs font-bold text-bakery-olive w-12">{w}kg:</span>
+                          <div className="relative flex-grow">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-bakery-olive/40 font-bold">₹</span>
+                            <input 
+                              type="number"
+                              required
+                              min="0"
+                              placeholder="Price"
+                              value={editSizePrices[w] || ''}
+                              onChange={(e) => setEditSizePrices({...editSizePrices, [w]: e.target.value})}
+                              className="w-full bg-white border border-bakery-olive/20 pl-7 pr-3 py-1.5 rounded-xl text-xs font-bold text-bakery-olive focus:outline-none focus:border-bakery-olive"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4 border-t border-bakery-olive/10">
