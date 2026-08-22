@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 import { ProductCategory } from '../types';
 
+const weightPriceSchema = new mongoose.Schema({
+  weight: { type: Number, required: true },
+  price: { type: Number, required: true }
+}, { _id: false });
+
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
@@ -9,7 +14,8 @@ const productSchema = new mongoose.Schema({
   image: { type: String, required: true },
   rating: { type: Number, default: 5.0 },
   featured: { type: Boolean, default: false },
-  availableWeights: { type: [Number], default: [] }
+  availableWeights: { type: [Number], default: [] },
+  weightPrices: { type: [weightPriceSchema], default: [] }
 }, {
   toJSON: {
     transform: (_doc, ret) => {
