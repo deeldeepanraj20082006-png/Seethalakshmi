@@ -5,6 +5,11 @@ export enum ProductCategory {
   COOKIES = 'Cookies'
 }
 
+export interface WeightPrice {
+  weight: number;
+  price: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -15,6 +20,7 @@ export interface Product {
   rating?: number;
   featured?: boolean;
   availableWeights?: number[]; // Added field for kg
+  weightPrices?: WeightPrice[];
 }
 
 export interface Order {
